@@ -1,22 +1,36 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include "read_graph_from_file2.h"
 
-void read_graph_from_file2();
+void create_SNN_graph2(int N, int *row_ptr, int *col_idx, int **SNN_val){
 
-int main(int argc, char const *argv[]) {
-  return 0;
-}
+*SNN_val = (int*) calloc(row_ptr[N], sizeof(int));
+int c;
+for (size_t i=0; i<N; i++){ //N-1?
+  for (size_t j=0;j<N-1; j++){ 
+    c = col_idx[j];
 
-void_create_SNN_graph2(int N, int *row_ptr, int *col_idx, int **SNN_val){
-  E = row_ptr[N]
-  *SNN_val = (int*) calloc(2*E, sizeof(int));
+    int *line_i = &col_idx[row_ptr[i]];
+    int *line_j = &col_idx[row_ptr[j]];
+    int i_idx = 0;
+    int j_idx = 0;
 
-  for (i=1; i<N+1; i++);
-  {
-    row_ptr[i] = row_ptr[i] + row_ptr[i]
+    int i_trm = row_ptr[i+1] - row_ptr[i];
+    int j_trm = row_ptr[c+1] - row_ptr[c];
+
+    while(i_idx < i_trm && j_idx < j_trm){
+      if (line_i[i_idx] < line_j[j_idx]){
+        i_idx++;
+      } else if (line_j[j_idx] < line_i[i_idx]) {
+        j_idx++;
+      } else {
+        (*SNN_val)[j]++;
+        (*SNN_val)[row_ptr[j] + j_idx]++;
+        i_idx++;
+        j_idx++;
+      }
+    }
+
   }
-
-  /* The CRS format for an SNN graph must use an additional array containing non-negative integer values, named such as SNN val,
-which is of length 2Nedges (same as col idx) */
-
+}
 }
