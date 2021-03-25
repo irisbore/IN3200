@@ -1,11 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void read_graph_from_file2(char *filename, int *N, int **row_ptr,
-int **col_idx){
+void read_graph_from_file2(char *filename, int *N, int **row_ptr, int **col_idx){
 
-  FILE * fp;
-  fp = fopen(filename, "r");
+  FILE *fp  = fopen(filename, "r");
   if (fp == NULL){
         printf("Could not open file %s",filename);
       }
@@ -14,34 +12,34 @@ int **col_idx){
   int E;
   fscanf(fp, "%*s %*s %d %*s %d \n", &(*N), &E);
   fscanf(fp, "%*[^\n]\n");
-
-  int *fromNode = (int*) calloc(E, sizeof(int));
-  int *toNode = (int*) calloc(E, sizeof(int));
-
+  
+  int *fromNode = (int*) malloc(E * sizeof(int));
+  int *toNode = (int*) malloc(E * sizeof(int));
+  int *countNeighbours = (int*) calloc(*N, sizeof(int));
   int tmp1, tmp2;
-  for (size_t i = 0; i < E; i ++){
+  int tmpE = E;
+
+  for (size_t i = 0; i < tmpE; i ++){
     fscanf(fp, "%d %d", &tmp1, &tmp2);
-    if (tmp1 != tmp2){
+    if (tmp1 != tmp2 && 0 <= tmp1 < *N && 0 <= tmp2 < *N ){
     fromNode[i] = tmp1;
     toNode[i] = tmp2;
+    countNeighbours[fromNode[i]] ++;
+    countNeighbours[toNode[i]] ++;
+    }
+    else{
+      i--;
+      tmpE--;
     }
   }
-
-int *countNeighbours = (int*) calloc(E, sizeof(int));
-for (size_t i = 0; i < E; i ++){
-  countNeighbours[fromNode[i]] ++;
-  countNeighbours[toNode[i]] ++;
-}
+  fclose(fp);
+  
 
 *row_ptr =  (int*) calloc((*N+1), sizeof(int));
 int *tmp_row_ptr = (int*) calloc((*N+1), sizeof(int));
 int *tmp_row_ptr2 = (int*) calloc((*N+1), sizeof(int));
 
-(*row_ptr)[1] = countNeighbours[0];
-tmp_row_ptr[1] = (*row_ptr)[1];
-tmp_row_ptr2[1] = (*row_ptr)[1];
-
-for (size_t i=2;i<(*N+1);i++){
+for (size_t i = 1; i < *N+1; i++){
   (*row_ptr)[i] = countNeighbours[i-1] + (*row_ptr)[i-1];
 
   //create copies efficiently
@@ -49,9 +47,8 @@ for (size_t i=2;i<(*N+1);i++){
   tmp_row_ptr2[i] = (*row_ptr)[i];
 }
 
-
-*col_idx = (int*) calloc(2 * E, sizeof(int));
-int *row_idx = (int*) calloc(2 * E, sizeof(int));
+*col_idx = (int*) malloc(2 * E * sizeof(int));
+int *row_idx = (int*) malloc(2 * E * sizeof(int));
 
 
 for (size_t i =0; i<E; i++){
@@ -63,18 +60,17 @@ for (size_t i =0; i<E; i++){
 }
 
 int node = 0;
-for (size_t i =0; i< 2*E; i++){ //remove 2?
-if (i >= (*row_ptr)[node +1]){
-  node++;
-}
+for (size_t i =0; i < 2*E; i++){ 
+  if (i >= (*row_ptr)[node +1]){
+    node++;
+  }
   (*col_idx)[tmp_row_ptr2[row_idx[i]]] = node;
   tmp_row_ptr2[row_idx[i]]++;
 }
-
-  fclose(fp);
-  free(countNeighbours);
   free(toNode);
   free(fromNode);
+  free(countNeighbours);
+  free(row_idx);
   free(tmp_row_ptr);
   free(tmp_row_ptr2);
   return;

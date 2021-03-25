@@ -1,36 +1,35 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "read_graph_from_file2.h"
+#include <omp.h>
 
-void create_SNN_graph2(int N, int *row_ptr, int *col_idx, int **SNN_val){
+void create_SNN_graph2(int N, int *row_ptr, int *col_idx, int **SNN_val) {
+  *SNN_val = (int*) calloc(row_ptr[N], sizeof(int));
+  #pragma omp parallel for
+  for (size_t i=0; i<N; i++){
+    int *traverse_i = &col_idx[row_ptr[i]];
+    int i_range = row_ptr[i+1] - row_ptr[i];
+        for (size_t k=row_ptr[i]; k<row_ptr[i+1]; k++){
+            int j = col_idx[k];
 
-*SNN_val = (int*) calloc(row_ptr[N], sizeof(int));
-int c;
-for (size_t i=0; i<N; i++){ //N-1?
-  for (size_t j=0;j<N-1; j++){ 
-    c = col_idx[j];
+            int *traverse_j = &col_idx[row_ptr[j]];
+            int i_current=0, j_current=0;
+            int j_range = row_ptr[j+1] - row_ptr[j];
 
-    int *line_i = &col_idx[row_ptr[i]];
-    int *line_j = &col_idx[row_ptr[j]];
-    int i_idx = 0;
-    int j_idx = 0;
-
-    int i_trm = row_ptr[i+1] - row_ptr[i];
-    int j_trm = row_ptr[c+1] - row_ptr[c];
-
-    while(i_idx < i_trm && j_idx < j_trm){
-      if (line_i[i_idx] < line_j[j_idx]){
-        i_idx++;
-      } else if (line_j[j_idx] < line_i[i_idx]) {
-        j_idx++;
-      } else {
-        (*SNN_val)[j]++;
-        (*SNN_val)[row_ptr[j] + j_idx]++;
-        i_idx++;
-        j_idx++;
-      }
+            while (i_current < i_range && j_current < j_range){
+                if (traverse_i[i_current] < traverse_j[j_current]){
+                    i_current++;
+                }
+                else if (traverse_j[j_current] < traverse_i[i_current]){
+                    j_current++;
+                }
+            
+                else{
+                    (*SNN_val)[k]++;
+                    i_current++;
+                    j_current++;
+                }
+            }
+        }
     }
-
-  }
-}
+  return;
 }

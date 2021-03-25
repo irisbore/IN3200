@@ -6,7 +6,7 @@ void read_graph_from_file1(char *filename, int *N, char ***table2D){
   FILE * fp;
   fp = fopen(filename, "r");
   if (fp == NULL){
-        printf("Could not open file %s",filename);
+        printf("Could not open file %s", filename);
       }
 
   //skip first two lines
