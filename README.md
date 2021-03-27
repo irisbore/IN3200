@@ -1,17 +1,19 @@
-# IN3200 EXAM
+# IN3200 FIRST HOME EXAM
 
-To compile all the programs for this exam:
+
+To compile the programs for this exam:
 ```
-$ make
+$ make serial && /.serial
+$ make parallel &&/.parallel
 ```
 
-## Makefile
-The makefile for this week show how to use variables and how to define `.PHONY` targets.
+## File overview  
+read_graph_fromfile1.c
+read_graph_fromfile2.c
+create_SNN_graph1.c
+create_SNN_graph2.c
+main.c
+declarations.h
 
-### Variables
-Variables are defined with `=` and `:=`. Ex.:
-```
-CC := gcc
-FLAGS := -Wall
-```
+
 

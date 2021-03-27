@@ -8,7 +8,6 @@ void create_SNN_graph1(int N, char **table2D, int ***SNN_table){
   for (size_t i=1; i<N; i++){
     (*SNN_table)[i] = &(*SNN_table)[0][i * N];
   } 
-
   #pragma omp parallel for schedule(dynamic)
   for(size_t i=0; i<N; i++){
     for(size_t j=i+1; j<N; j++){
@@ -25,6 +24,7 @@ void create_SNN_graph1(int N, char **table2D, int ***SNN_table){
       }
     }
   }
+  return;
 }
 
   
