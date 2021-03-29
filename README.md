@@ -15,6 +15,7 @@ create_SNN_graph1.c
 create_SNN_graph2.c
 main.c
 declarations.h
+facebook_combined.txt
 
 
 
