@@ -4,7 +4,7 @@
 
 void create_SNN_graph2(int N, int *row_ptr, int *col_idx, int **SNN_val) {
   *SNN_val = (int*) calloc(row_ptr[N], sizeof(int));
-  #pragma omp parallel for 
+  #pragma omp parallel for schedule(dynamic)
   for (size_t i=0; i<N; i++){
     int *traverse_i = &col_idx[row_ptr[i]];
     int i_range = row_ptr[i+1] - row_ptr[i];

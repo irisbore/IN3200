@@ -27,14 +27,13 @@ int main(int argc, char const *argv[]) {
     start = omp_get_wtime();
     create_SNN_graph1(N, table2D, &SNN_table);
     time_SNN1 = omp_get_wtime() - start;
-   
 
     printf("Testing create_SNN_graph2 \n");
     start = omp_get_wtime();
     create_SNN_graph2(N, row_ptr, col_idx, &SNN_val);
     time_SNN2 = omp_get_wtime() - start;
     
-    printf("%f ms", time_SNN2*1000);
+  //printf(Run time is %f, time_)
 
   free(table2D);
   free((table2D)[0]);

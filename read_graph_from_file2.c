@@ -42,7 +42,6 @@ int *tmp_row_ptr2 = (int*) calloc((*N+1), sizeof(int));
 for (size_t i = 1; i < *N+1; i++){
   (*row_ptr)[i] = countNeighbours[i-1] + (*row_ptr)[i-1];
 
-  //create copies efficiently
   tmp_row_ptr[i] = (*row_ptr)[i];
   tmp_row_ptr2[i] = (*row_ptr)[i];
 }
