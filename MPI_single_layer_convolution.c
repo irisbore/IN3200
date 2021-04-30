@@ -41,18 +41,26 @@ float **output)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
     
-    printf("rank: %d/%d\n", rank, nprocs);
+    printf("rank: %d/%d\n", rank, nprocs-1);
    
     int root = 0;
-    
     // Calculate displacements and number of rows for each process.
-    int *n_rows = malloc(nprocs*sizeof *n_rows);
     int rest = M % nprocs;
     int part = M / nprocs;
     int myrest = part + (rank < rest);
-    int down = K - 1; 
+
+
+    int up, down;
+    if (K%2){                  //odd kernel
+        down = up = (K-1)/2;
+    }
+    else{                           //even kernel
+        down = K/2 + 1;
+        up = K/2;
+    }
 
     if (rank == root){
+        int *n_rows = malloc(nprocs*sizeof *n_rows);
         // Used when scattering input.
         sendcounts = malloc(nprocs*sizeof *sendcounts);
         Sdispls = malloc(nprocs*sizeof *Sdispls);
@@ -60,48 +68,60 @@ float **output)
         // Used when gathering y
         Gdispls = malloc(nprocs*sizeof *Gdispls);
 
-        Sdispls[0] = 0;
-        Gdispls[0] = 0;
-
         //a 1D block-wise decomposition with respect to the rows
         // Last remainder processes gets an extra row.
 
-        for (int r = 0; r < nprocs-1; r++) {
-            n_rows[r] = part + (r < rest ? 1:0);
+        Sdispls[0] = 0;
+        Gdispls[0] = 0;
+
+        for (int r = 0; r < nprocs - 1; r++) {
+            if (r == root){
+                n_rows[r] = part + (r < rest ? 1:0) + down;
+            }
+            else {
+                n_rows[r] = part + (r < rest ? 1:0) + up + down;
+            }
             sendcounts[r] = n_rows[r] * N;
-            Sdispls[r+1] = Sdispls[r] + sendcounts[r];
+            Sdispls[r+1] = Sdispls[r] + sendcounts[r] - N * up - N * down;  // subtract to include ghost layer 
             Gdispls[r+1] = Gdispls[r] + n_rows[r];
         }
-        n_rows[nprocs - 1] = part + (nprocs - 1 < rest ? 1:0);
-        sendcounts[nprocs-1] = n_rows[nprocs-1] * N;
-        printf("done with decomp \n");
-
+        n_rows[nprocs - 1] = part + (nprocs - 1 < rest ? 1:0) + up;
+        sendcounts[nprocs-1] = n_rows[nprocs-1] * N ;
     } 
 
-    //int rows = M /nprocs;
-    //n_rows[nprocs-1] = rows + ((nprocs-1) >= (nprocs - remainder) ? 1:0);
-
-    /*
-    int _M = M - K + 1,
-      _N = N - K + 1;
-
+/*
     for (size_t y = 0; y < Y; y++) {
     for (size_t x = 0; x < X; x++) {
       ptr[y][x] = y + ((x * 1.0) / 100);
+    }
+    SE HER
+    Sdispls[rank+1] = Sdispls[rank] + sendcounts[rank] (oppdatert send counts) - N*up - N*down;
     }
   }
     */
 
     // Allocate local buffers (each get their own copy)
-    printf(" %d on allocate \n", rank);
-    if (rank != root) {
-        input = malloc((myrest + down) * N * sizeof(float*));
-        input[0] = malloc((myrest + down) * N * sizeof(float));
+    if (rank != root){
+        input = malloc((myrest + down + up) * sizeof(float*));
+        input[0] = malloc((myrest + down + up) * N * sizeof(float));
+        for(int i = 0; i < (myrest + down + up); i++)
+            input[i] = &input[0][i * N];
+
+        /*
+        output = malloc((myrest + down) * N * sizeof(float*));
+        output[0] = malloc((myrest + down) * N * sizeof(float));
         for(int i = 0; i < (myrest + down); i++)
-            input[i] = &input[0][i * N];  
-    
+            output[i] = &input[0][i * N]; 
+        */ 
     }
-    printf(" %d on allocate \n", rank);
+    /*
+    if (rank == nprocs - 1){
+        input = malloc((myrest + up) * sizeof(float*));
+        input[0] = malloc((myrest + up) * N * sizeof(float));
+        for(int i = 0; i < (myrest + up); i++)
+            input[i] = &input[0][i * N];
+    }
+    */ 
     // scatter input
     // printf("on scatterv \n");
     if (rank == root){
@@ -109,9 +129,9 @@ float **output)
             printf("\t(%d)\t%d, %d \n", i, sendcounts[i], Sdispls[i]);
         }
     }
-    printf("myrest: %d, down: %d \n", myrest, down);
+    printf("myrest: %d, down: %d up: %d \n", myrest, down, up);
     
-    if (rank == 0){
+    if (rank == root){
         for (int i = 0; i < M; i++){
             for (int j = 0; j < N; j++){
                 printf("%f", input[i][j]);
@@ -119,34 +139,44 @@ float **output)
             printf("\n");
         }
     }
+    MPI_Barrier(MPI_COMM_WORLD);
     
     MPI_Scatterv(&(input[0][0]),                 // Sendbuff, matters only for root process.
                  sendcounts,
                  Sdispls,
                  MPI_FLOAT,
                  &(input[0][0]),                 // Recieve buff is local input array
-                 (myrest + down) * N,
+                 (myrest + down + up) * N,
                  MPI_FLOAT,
                  root,
                  MPI_COMM_WORLD);
     
-    
-    printf("after scatterv \n");
-    for (int r = 0; r < nprocs; r++){
-        if (r == rank){
-            printf("MY RANK: %d \n", rank);
-            for (size_t i = 0; i < myrest; i++) {
+    //for (int r = 0; r < nprocs; r++){
+    /*
+    if (rank == 1){
+        printf("MY RANK: %d \n", rank);
+            for (size_t i = 0; i < myrest + down + up; i++) {
                 for (size_t j = 0; j < N; j++) {
                     printf(" %f ", input[i][j]);
                 }
                 printf("\n");
             }
         }
-        MPI_Barrier(MPI_COMM_WORLD);
-    }
-    /*
     
+    */
 
+    if (rank == 2){
+        printf("MY RANK: %d \n", rank);
+            for (size_t i = 0; i < myrest + up; i++) {
+                for (size_t j = 0; j < N; j++) {
+                    printf(" %f ", input[i][j]);
+                }
+                printf("\n");
+            }
+        }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    /*
     int i,j, ii, jj;
     double temp;
     for (i=0; i<=M-K; i++){
@@ -172,7 +202,7 @@ MPI_Init (&argc, &argv);
 MPI_Comm_rank (MPI_COMM_WORLD, &rank);
 MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
-if (rank==0) {
+if (rank == root) {
 // read from command line the values of M, N, and K x
 // allocate 2D array ’input’ with M rows and N columns
 // allocate 2D array ’output’ with M-K+1 rows and N-K+1 columns x
@@ -252,8 +282,6 @@ if (rank==root) {
 }
 */
 MPI_Finalize();
-//free(input[0]);
-//free(input);
 return 0; 
 }
 
