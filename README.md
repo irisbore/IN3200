@@ -1,21 +1,13 @@
-# IN3200 FIRST HOME EXAM
+# IN3200 SECOND HOME EXAM
 
 
 To compile and run the programs for this exam:
 ```
-$ make serial && /.serial
-$ make parallel && /.parallel
+$ make main && make run
 ```
 
-## File overview  
-makefile
-read_graph_fromfile1.c
-read_graph_fromfile2.c
-create_SNN_graph1.c
-create_SNN_graph2.c
-main.c
-declarations.h
-facebook_combined.txt
-
-
-
+## File overview
+MPI_single_layer_convolution.c
+main.c  
+Makefile
+set.h

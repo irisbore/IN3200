@@ -13,20 +13,20 @@ float **output)
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
-    
-    printf("rank: %d/%d\n", rank, nprocs-1);
-   
+
     int root = 0;
+
     // Calculate displacements and number of rows for each process.
     int rest = (M - K + 1) % nprocs;
-    int part = (M - K + 1) / nprocs; // + K - 1
-    int myrest = part + (rank < rest);
+    int part = (M - K + 1) / nprocs; // Create chunk for each process with respect to output size
+    int myrest = part + (rank < rest); // Make sure all leftover rows are distributed
 
-    
+
     if (rank == root){
         // Used when scattering input.
         sendcounts = malloc(nprocs*sizeof *sendcounts);
         Sdispls = malloc(nprocs*sizeof *Sdispls);
+            
         // Used when gathering y
         recvcounts = malloc(nprocs * sizeof *recvcounts);
         Gdispls = malloc(nprocs*sizeof *Gdispls);
@@ -61,19 +61,20 @@ float **output)
     }
   
     // Scatter input
-    
     MPI_Scatterv(&(input[0][0]),                 // Sendbuff, matters only for root process.
                  sendcounts,
                  Sdispls,
                  MPI_FLOAT,
                  &(input[0][0]),                 // Recieve buff is local input array
-                 (myrest + K - 1) * N,
+                 (myrest + K - 1) * N,           // Add K - 1 to get local input size                                    
                  MPI_FLOAT,
                  root,
                  MPI_COMM_WORLD);
-       
+    
+    //Perform convolution on each process
     single_layer_convolution(myrest + K - 1, N, input, K, kernel, output);
-        
+    
+    //Gather local outputs
     MPI_Gatherv(&(output[0][0]) , (myrest) * (N - K + 1), MPI_FLOAT, &(output[0][0]) , recvcounts, Gdispls , MPI_FLOAT ,root , MPI_COMM_WORLD);
 
     //Free those who are done
